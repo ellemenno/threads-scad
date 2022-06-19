@@ -3,11 +3,12 @@
 // https://creativecommons.org/publicdomain/zero/1.0/
 //
 // https://www.thingiverse.com/thing:1686322
+// https://github.com/rcolyer/threads-scad
 //
-// v2.1.1
+// v2.2
 
 
-default_screw_resolution = 2; // in mm; override by setting $screw_resolution
+default_screw_resolution = 0.2; // in mm; override by setting $screw_resolution
 
 
 // Provides standard metric thread pitches.
@@ -463,14 +464,36 @@ module PhillipsTip(width=7, thickness=0, straightdepth=0, position=[0,0,0], rota
 }
 
 
+// Create a hexagonal prism with optional chamfered edges.
+module HexHead(diameter, thickness, tolerance=0.4, top_chamfer=false, bottom_chamfer=false) {
+  d = diameter;
+  t = thickness;
+  r = HexAcrossCorners(diameter)/2-0.5*tolerance;
+  rt = NutThickness(diameter)/12;
+
+  union() {
+    translate([0,0,t-rt]) cylinder(h=rt, r1=r, r2=(top_chamfer ? r-rt : r), $fn=6);
+    translate([0,0,rt]) cylinder(h=t-2*rt, r=r, $fn=6);
+    cylinder(h=rt, r1=(bottom_chamfer ? r-rt : r), r2=r, $fn=6);
+  }
+}
+
+
+// Create a configurable hex nut.
+module HexNut(diameter, thickness=0, pitch=0, tooth_angle=30, tolerance=0.4, top_chamfer=false, bottom_chamfer=false) {
+  thickness = (thickness==0) ? NutThickness(diameter) : thickness;
+  ScrewHole(diameter, thickness, pitch=pitch, tooth_angle=tooth_angle, tolerance=tolerance)
+    HexHead(diameter, thickness, tolerance, top_chamfer, bottom_chamfer);
+}
+
 
 // Create a standard sized metric bolt with hex head and hex key.
-module MetricBolt(diameter, length, tolerance=0.4) {
+module MetricBolt(diameter, length, tolerance=0.4, top_chamfer=false, bottom_chamfer=false) {
   drive_tolerance = pow(3*tolerance/HexDriveAcrossCorners(diameter),2)
     + 0.75*tolerance;
 
   difference() {
-    cylinder(h=diameter, r=(HexAcrossCorners(diameter)/2-0.5*tolerance), $fn=6);
+    HexHead(diameter, thickness=diameter, tolerance=tolerance, top_chamfer=top_chamfer, bottom_chamfer=bottom_chamfer);
     cylinder(h=diameter,
       r=(HexDriveAcrossCorners(diameter)+drive_tolerance)/2, $fn=6,
       center=true);
@@ -517,10 +540,8 @@ module MetricWoodScrew(diameter, length, tolerance=0.4) {
 
 
 // Create a standard sized metric hex nut.
-module MetricNut(diameter, thickness=0, tolerance=0.4) {
-  thickness = (thickness==0) ? NutThickness(diameter) : thickness;
-  ScrewHole(diameter, thickness, tolerance=tolerance)
-    cylinder(h=thickness, r=HexAcrossCorners(diameter)/2-0.5*tolerance, $fn=6);
+module MetricNut(diameter, thickness=0, tolerance=0.4, top_chamfer=false, bottom_chamfer=false) {
+  HexNut(diameter, thickness=thickness, tolerance=tolerance, top_chamfer=top_chamfer, bottom_chamfer=bottom_chamfer);
 }
 
 
@@ -589,11 +610,12 @@ module RodExtender(diameter, height, thread_len=0, thread_diam=0, thread_pitch=0
 
 
 // Produces a matching set of metric bolts, nuts, and washers.
-module MetricBoltSet(diameter, length, quantity=1) {
+module MetricBoltSet(diameter, length, quantity=1, chamfered=false) {
+  s = diameter*3;
   for (i=[0:quantity-1]) {
-    translate([0, i*4*diameter, 0]) MetricBolt(diameter, length);
-    translate([4*diameter, i*4*diameter, 0]) MetricNut(diameter);
-    translate([8*diameter, i*4*diameter, 0]) MetricWasher(diameter);
+    translate([0*s, i*s, 0]) MetricBolt(diameter, length, top_chamfer=chamfered, bottom_chamfer=chamfered);
+    translate([1*s, i*s, 0]) MetricNut(diameter, top_chamfer=chamfered, bottom_chamfer=chamfered);
+    translate([2*s, i*s, 0]) MetricWasher(diameter);
   }
 }
 
@@ -639,8 +661,16 @@ module ThreadCheck() {
     }
     cube(h);
   }
+module DemoBoltSets() {
+  d=6;
+  h=8;
+  n=1;
+  MetricBoltSet(d, h, n);
+  translate([0, -d*n*3, 0]) MetricBoltSet(d, h, n, chamfered=true);
 }
+
 
 
 //Demo();
 ThreadCheck();
+DemoBoltSets();

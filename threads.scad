@@ -661,6 +661,9 @@ module ThreadCheck() {
     }
     cube(h);
   }
+}
+
+
 module DemoBoltSets() {
   d=6;
   h=8;
@@ -668,7 +671,6 @@ module DemoBoltSets() {
   MetricBoltSet(d, h, n);
   translate([0, -d*n*3, 0]) MetricBoltSet(d, h, n, chamfered=true);
 }
-
 
 
 //Demo();

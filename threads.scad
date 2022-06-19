@@ -668,8 +668,10 @@ module DemoBoltSets() {
   d=6;
   h=8;
   n=1;
-  MetricBoltSet(d, h, n);
-  translate([0, -d*n*3, 0]) MetricBoltSet(d, h, n, chamfered=true);
+  translate([d*3, 0, 0]) {
+    MetricBoltSet(d, h, n);
+    translate([0, -d*n*3, 0]) MetricBoltSet(d, h, n, chamfered=true);
+  }
 }
 
 
